@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cargador de Letras · ProPresenter 6</title>
+<style>
+:root{
+  --ink:#151a2e; --panel:#1e2440; --panel2:#262d4f; --line:#343c66;
+  --text:#ecebf3; --muted:#9aa0c0; --gold:#e8b84a; --gold-ink:#2a2006;
+  --verso:#4c7bd9; --coro:#d9485f; --precoro:#e0a43a; --puente:#8e5bd9; --extra:#3ba59b; --otro:#7a8199;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text)}
+body{display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:1.15rem;margin:0;font-weight:700;letter-spacing:.01em}
+header h1 span{color:var(--muted);font-weight:400}
+header .sp{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700}
+.btn.small{padding:4px 9px;font-size:.82rem;border-radius:6px}
+.btn.danger:hover{border-color:var(--coro);color:#ffb3bf}
+
+main{flex:1;display:grid;grid-template-columns:220px minmax(320px,1fr) minmax(360px,1.3fr);min-height:0}
+section{min-height:0;overflow:auto;padding:16px}
+#songs{background:var(--panel);border-right:1px solid var(--line)}
+#editor{border-right:1px solid var(--line)}
+h2{font-size:.95rem;margin:0 0 10px;color:var(--muted);font-weight:600}
+
+.song{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid transparent}
+.song:hover{background:var(--panel2)}
+.song.active{background:var(--panel2);border-color:var(--gold)}
+.song .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.song .c{color:var(--muted);font-size:.8rem}
+.song .x{background:none;border:0;color:var(--muted);padding:2px 6px;border-radius:4px}
+.song .x:hover{color:#ffb3bf;background:#0003}
+
+label.f{display:block;font-size:.85rem;color:var(--muted);margin:0 0 4px}
+.row{display:flex;gap:10px;margin-bottom:12px;align-items:flex-end}
+.row > div{flex:1}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{min-height:300px;resize:vertical;line-height:1.5;font-size:.95rem}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:12px 0;font-size:.9rem}
+.opts label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.opts input{accent-color:var(--gold)}
+
+.banner{background:#3a2f12;border:1px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.9rem;display:none;gap:10px;align-items:center}
+.banner.show{display:flex}
+.banner span{flex:1}
+
+#previewHead{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+#previewHead h2{margin:0;flex:1}
+.group{margin-bottom:16px}
+.ghead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600;font-size:.9rem}
+.chip{width:12px;height:12px;border-radius:3px}
+.slides{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.slide{background:var(--panel);border-radius:8px;padding:6px;border-top:4px solid var(--otro)}
+.screen{aspect-ratio:16/9;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:8px;container-type:inline-size}
+.screen div{color:#fff;text-align:center;font-weight:700;line-height:1.25;white-space:pre-wrap;font-size:5cqw;width:100%;outline:none;border-radius:3px}
+.screen div:focus{box-shadow:0 0 0 2px var(--gold)}
+.stools{display:flex;gap:4px;margin-top:6px;align-items:center}
+.stools .num{flex:1;color:var(--muted);font-size:.78rem;padding-left:2px}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:30px;text-align:center;line-height:1.6}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--gold-ink);padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;max-width:620px;padding:22px;line-height:1.6}
+dialog::backdrop{background:#000a}
+dialog h3{margin-top:0}
+dialog ol{padding-left:20px}
+code{background:var(--ink);padding:1px 6px;border-radius:4px}
+
+@media (max-width:1000px){
+  html,body{height:auto}
+  body{display:block}
+  main{display:block}
+  section{overflow:visible;min-height:auto;padding:16px 14px}
+  #songs,#editor{border-right:0;border-bottom:1px solid var(--line)}
+  #songList{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+  .song{flex:0 0 auto;max-width:70vw;margin:0}
+  textarea{min-height:220px}
+  input[type=text],input[type=number],select,textarea{font-size:16px}
+  .row{flex-wrap:wrap}
+  .row > div{min-width:120px}
+  .opts{grid-template-columns:1fr}
+  #previewHead h2{flex-basis:100%}
+  #previewHead select{flex:1}
+  .slides{grid-template-columns:1fr 1fr}
+  header{padding:12px 14px}
+  header h1{flex-basis:100%}
+  header .sp{display:none}
+}
+@media (max-width:420px){ .slides{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cargador de Letras <span>para ProPresenter 6</span></h1>
+  <div class="sp"></div>
+  <button class="btn" id="helpBtn">Cómo importar</button>
+  <button class="btn" id="allBtn">Descargar todas</button>
+</header>
+
+<main>
+  <section id="songs">
+    <h2>Canciones</h2>
+    <div id="songList"></div>
+    <button class="btn" id="addBtn" style="width:100%;margin-top:8px">+ Nueva canción</button>
+  </section>
+
+  <section id="editor">
+    <div class="row">
+      <div><label class="f" for="title">Título</label><input type="text" id="title" placeholder="Nombre de la canción"></div>
+    </div>
+    <div class="row">
+      <div><label class="f" for="artist">Autor (opcional)</label><input type="text" id="artist"></div>
+      <div style="max-width:130px"><label class="f" for="ccli">CCLI (opcional)</label><input type="text" id="ccli"></div>
+    </div>
+    <label class="f" for="raw">Letra (pegala tal como viene)</label>
+    <textarea id="raw" spellcheck="false" placeholder="Verso 1
+Primera línea de la canción
+Segunda línea de la canción
+
+Coro
+Línea del coro (x2)
+Otra línea del coro
+
+Verso 2
+...
+
+Coro"></textarea>
+
+    <div class="row" style="margin-top:12px">
+      <div><label class="f" for="lps">Líneas por diapositiva</label><input type="number" id="lps" min="1" max="8" value="2"></div>
+      <div><label class="f" for="maxc">Máx. caracteres por línea</label><input type="number" id="maxc" min="15" max="120" value="40"></div>
+      <div><label class="f" for="caseMode">Mayúsculas</label>
+        <select id="caseMode"><option value="keep">Dejar igual</option><option value="first">Primera letra</option><option value="upper">TODO MAYÚSCULAS</option></select></div>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="oChords" checked> Quitar acordes</label>
+      <label><input type="checkbox" id="oRepeat" checked> Expandir repeticiones (x2)</label>
+      <label><input type="checkbox" id="oNums" checked> Quitar numeración</label>
+      <label><input type="checkbox" id="oPunct"> Quitar puntuación final</label>
+      <label><input type="checkbox" id="oBom" checked> Acentos compatibles (Windows)</label>
+    </div>
+  </section>
+
+  <section id="preview">
+    <div class="banner" id="banner"><span>Editaste diapositivas a mano. Si cambiás la letra u opciones, regenerá para aplicarlo (perdés esas ediciones).</span><button class="btn small" id="regenBtn">Regenerar</button></div>
+    <div id="previewHead">
+      <h2 id="count">Vista previa</h2>
+      <button class="btn small" id="copyBtn">Copiar texto</button>
+      <select id="fmt" style="width:auto" title="Formato de descarga">
+        <option value="txt">.txt (recomendado)</option>
+        <option value="pro6">.pro6 (experimental)</option>
+      </select>
+      <button class="btn primary" id="dlBtn">Descargar</button>
+    </div>
+    <div id="slidesWrap"></div>
+  </section>
+</main>
+
+<dialog id="help">
+  <h3>Cómo importar en ProPresenter 6</h3>
+  <ol>
+    <li>Descargá el <code>.txt</code> de la canción (o todas con "Descargar todas").</li>
+    <li>En ProPresenter 6 andá a <b>Archivo → Importar → Importar archivos…</b> (File → Import → Import Files…).</li>
+    <li>Elegí el <code>.txt</code>. Si te pregunta cómo separar las diapositivas, elegí <b>por párrafo / línea en blanco</b>.</li>
+    <li>Revisá la presentación y asignale los grupos (Verso, Coro) y el tema que usen.</li>
+  </ol>
+  <h3>Formato .pro6 (experimental)</h3>
+  <p>Es el formato nativo: conserva los grupos (Verso, Coro, Puente) con sus colores. Para usarlo, elegí <b>.pro6</b> junto al botón Descargar y, en ProPresenter 6, arrastrá el archivo a la biblioteca o abrilo con <b>Archivo → Importar</b>. Si no abre o el texto no aparece, usá el <code>.txt</code>.</p>
+  <p>Probá primero con una canción. Si los acentos se ven raros, cambiá la opción "Acentos compatibles (Windows)" y volvé a descargar.</p>
+  <p>Atajo: <code>Ctrl/Cmd + S</code> descarga la canción actual. Todo queda guardado en este navegador.</p>
+  <button class="btn primary" onclick="this.closest('dialog').close()">Entendido</button>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+// ===== Estado =====
+const KEY = 'cargador-letras-v1';
+const $ = id => document.getElementById(id);
+let state = load() || { songs: [], current: null, opts: { lps:2, maxc:40, caseMode:'keep', chords:true, repeat:true, nums:true, punct:false, bom:true } };
+if (!state.songs.length) newSong();
+
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
+let saveT;
+function save(){ clearTimeout(saveT); saveT = setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }, 300); }
+function cur(){ return state.songs.find(s=>s.id===state.current); }
+function newSong(){
+  const s = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:'', artist:'', ccli:'', raw:'', slides:[], edited:false };
+  state.songs.push(s); state.current = s.id; return s;
+}
+
+// ===== Procesamiento =====
+const LABELS = [
+  [/^pre[\s-]?(coro|chorus)/i,'Pre-coro'], [/^(verso|verse|estrofa)/i,'Verso'], [/^(coro|chorus|refr[aá]n)/i,'Coro'],
+  [/^(puente|bridge)/i,'Puente'], [/^intro/i,'Intro'], [/^(final|outro|ending)/i,'Final'], [/^tag/i,'Tag'],
+  [/^(interludio|instrumental)/i,'Interludio']
+];
+const LABEL_RE = /^[\[(]?\s*(pre[\s-]?coro|pre[\s-]?chorus|verso|verse|estrofa|coro|chorus|refr[aá]n|puente|bridge|intro|final|outro|ending|tag|interludio|instrumental)\s*(\d+)?\s*[\])]?\s*:?\s*(?:[\[(]?\s*(?:x\s*(\d+)|(\d+)\s*x|(\d+)\s*veces)\s*[\])]?)?\s*$/i;
+const REP_RE = /\s*[\[(]?\s*(?:x\s*(\d+)|(\d+)\s*x|(\d+)\s*veces)\s*[\])]?\s*$/i;
+const CHORD = /^[A-G](?:#|b|♯|♭)?(?:maj|min|dim|aug|sus|add|m|M)?\d{0,2}(?:(?:sus|add|maj)\d{0,2}|[b#]\d{1,2})*(?:\/[A-G](?:#|b)?)?$/;
+
+function isChordLine(t){
+  const toks = t.split(/\s+/).filter(x=>x && !/^[|\-–/]+$/.test(x));
+  return toks.length>0 && toks.every(x=>CHORD.test(x.replace(/[()]/g,'')));
+}
+function labelName(word, num){
+  for (const [re,name] of LABELS) if (re.test(word)) return num ? name+' '+num : name;
+  return word;
+}
+function groupColor(name){
+  const n = name.toLowerCase();
+  if (n.startsWith('pre')) return 'var(--precoro)';
+  if (n.startsWith('verso')||n.startsWith('estrofa')) return 'var(--verso)';
+  if (n.startsWith('coro')) return 'var(--coro)';
+  if (n.startsWith('puente')) return 'var(--puente)';
+  if (/^(intro|final|tag|interludio)/.test(n)) return 'var(--extra)';
+  return 'var(--otro)';
+}
+function fixCase(t, mode){
+  if (mode==='upper') return t.toLocaleUpperCase('es');
+  if (mode==='first') return t.charAt(0).toLocaleUpperCase('es') + t.slice(1);
+  return t;
+}
+function wrap(line, max){
+  if (line.length <= max) return [line];
+  const mid = line.length/2;
+  let best=-1, bestD=1e9;
+  for (let i=0;i<line.length;i++){
+    if (line[i]===',' && line[i+1]===' ' && i>line.length*.3 && i<line.length*.7){ const d=Math.abs(i-mid); if(d<bestD){bestD=d;best=i+1;} }
+  }
+  if (best<0){ for (let i=0;i<line.length;i++){ if(line[i]===' '){ const d=Math.abs(i-mid); if(d<bestD){bestD=d;best=i;} } } }
+  if (best<0) return [line];
+  return [...wrap(line.slice(0,best).trim(),max), ...wrap(line.slice(best).trim(),max)];
+}
+
+function process(raw, o){
+  const sections = [];
+  let cur = null, brk = false, auto = 0;
+  for (let line of raw.split(/\r?\n/)){
+    let t = line.replace(/\t/g,' ').replace(/\s+/g,' ').trim();
+    if (!t){ brk = true; continue; }
+    const m = t.match(LABEL_RE);
+    if (m){
+      const rep = parseInt(m[3]||m[4]||m[5]||'1',10);
+      cur = { name: labelName(m[1], m[2]), lines: [], rep }; sections.push(cur); brk = false; continue;
+    }
+    if (o.chords){ if (isChordLine(t)) continue; t = t.replace(/\[[A-G][^\]]{0,7}\]/g,'').replace(/\s+/g,' ').trim(); if(!t) continue; }
+    if (o.nums) t = t.replace(/^\d+[.)]\s+/,'');
+    let times = 1;
+    const r = t.match(REP_RE);
+    if (r && r.index>0){ t = t.slice(0,r.index).trim(); if (o.repeat) times = Math.min(parseInt(r[1]||r[2]||r[3],10)||1, 8); }
+    if (o.punct) t = t.replace(/[.,;:]+$/,'');
+    t = fixCase(t, o.caseMode);
+    if (!cur || (brk && cur.lines.length)){ auto++; cur = { name:'Estrofa '+auto, lines:[], rep:1 }; sections.push(cur); }
+    brk = false;
+    for (let i=0;i<times;i++) cur.lines.push(t);
+  }
+  // Secciones vacías que repiten una anterior (ej: "Coro" solo)
+  const out = [];
+  sections.forEach((s,i)=>{
+    if (!s.lines.length){
+      if (!o.repeat) return;
+      const prev = sections.slice(0,i).reverse().find(p=>p.lines.length && p.name.toLowerCase()===s.name.toLowerCase());
+      if (prev) s.lines = prev.lines.slice(); else return;
+    }
+    const n = o.repeat ? Math.min(s.rep,8) : 1;
+    for (let k=0;k<n;k++) out.push(s);
+  });
+  const slides = [];
+  const lps = Math.max(1, +o.lps||2), max = Math.max(15, +o.maxc||40);
+  out.forEach(s=>{
+    const lines = s.lines.flatMap(l=>wrap(l,max));
+    for (let i=0;i<lines.length;i+=lps) slides.push({ group:s.name, text: lines.slice(i,i+lps).join('\n') });
+  });
+  return slides;
+}
+
+// ===== Render =====
+function readOpts(){
+  const o = state.opts;
+  o.lps=+$('lps').value; o.maxc=+$('maxc').value; o.caseMode=$('caseMode').value;
+  o.chords=$('oChords').checked; o.repeat=$('oRepeat').checked; o.nums=$('oNums').checked; o.punct=$('oPunct').checked; o.bom=$('oBom').checked;
+}
+function writeOpts(){
+  const o = state.opts;
+  $('lps').value=o.lps; $('maxc').value=o.maxc; $('caseMode').value=o.caseMode;
+  $('oChords').checked=o.chords; $('oRepeat').checked=o.repeat; $('oNums').checked=o.nums; $('oPunct').checked=o.punct; $('oBom').checked=o.bom;
+}
+function loadSong(){
+  const s = cur();
+  $('title').value=s.title; $('artist').value=s.artist; $('ccli').value=s.ccli; $('raw').value=s.raw;
+  renderList(); renderSlides();
+}
+function regen(force){
+  const s = cur();
+  if (s.edited && !force){ $('banner').classList.add('show'); return; }
+  s.slides = process(s.raw, state.opts); s.edited=false;
+  $('banner').classList.remove('show');
+  renderList(); renderSlides(); save();
+}
+function renderList(){
+  const box = $('songList'); box.innerHTML='';
+  state.songs.forEach(s=>{
+    const d = document.createElement('div');
+    d.className='song'+(s.id===state.current?' active':'');
+    d.innerHTML='<span class="n"></span><span class="c"></span><button class="x" title="Eliminar canción">✕</button>';
+    d.querySelector('.n').textContent = s.title || 'Sin título';
+    d.querySelector('.c').textContent = s.slides.length || '';
+    d.onclick = ()=>{ state.current=s.id; loadSong(); save(); };
+    d.querySelector('.x').onclick = e=>{
+      e.stopPropagation();
+      if (!confirm('¿Eliminar "'+(s.title||'Sin título')+'"?')) return;
+      state.songs = state.songs.filter(x=>x!==s);
+      if (!state.songs.length) newSong();
+      if (!cur()) state.current = state.songs[0].id;
+      loadSong(); save();
+    };
+    box.appendChild(d);
+  });
+}
+function renderSlides(){
+  const s = cur(), wrap = $('slidesWrap'); wrap.innerHTML='';
+  $('count').textContent = s.slides.length ? s.slides.length+' diapositivas' : 'Vista previa';
+  if (!s.slides.length){
+    wrap.innerHTML='<div class="empty">Pegá la letra y las diapositivas aparecen acá.<br>Podés escribir etiquetas como <b>Verso 1</b>, <b>Coro</b> o <b>Puente</b> para agrupar.</div>';
+    return;
+  }
+  let group=null, grid=null;
+  s.slides.forEach((sl,i)=>{
+    if (!group || sl.group!==group.dataset.name){
+      group = document.createElement('div'); group.className='group'; group.dataset.name=sl.group;
+      group.innerHTML='<div class="ghead"><span class="chip"></span><span></span></div><div class="slides"></div>';
+      group.querySelector('.chip').style.background=groupColor(sl.group);
+      group.querySelector('.ghead span:last-child').textContent=sl.group;
+      grid = group.querySelector('.slides'); wrap.appendChild(group);
+    }
+    const c = document.createElement('div'); c.className='slide'; c.style.borderTopColor=groupColor(sl.group);
+    c.innerHTML='<div class="screen"><div contenteditable="plaintext-only" spellcheck="false"></div></div><div class="stools"><span class="num"></span><button class="btn small" data-a="split" title="Dividir en dos">Dividir</button><button class="btn small" data-a="merge" title="Unir con la siguiente">Unir</button><button class="btn small danger" data-a="del" title="Borrar">✕</button></div>';
+    const ed = c.querySelector('[contenteditable]');
+    if (ed.contentEditable!=='plaintext-only') ed.contentEditable='true';
+    ed.textContent = sl.text;
+    c.querySelector('.num').textContent = '#'+(i+1);
+    ed.addEventListener('blur', ()=>{
+      const t = ed.innerText.replace(/\n{2,}/g,'\n').trim();
+      if (t!==sl.text){ sl.text=t; markEdited(); }
+    });
+    c.querySelector('.stools').onclick = e=>{
+      const a = e.target.dataset.a; if(!a) return;
+      if (a==='del') s.slides.splice(i,1);
+      if (a==='merge' && s.slides[i+1]){ sl.text += '\n'+s.slides[i+1].text; s.slides.splice(i+1,1); }
+      if (a==='split'){
+        const ls = sl.text.split('\n'); let A,B;
+        if (ls.length>1){ const h=Math.ceil(ls.length/2); A=ls.slice(0,h).join('\n'); B=ls.slice(h).join('\n'); }
+        else { const w=sl.text.split(' '); if(w.length<2) return; const h=Math.ceil(w.length/2); A=w.slice(0,h).join(' '); B=w.slice(h).join(' '); }
+        sl.text=A; s.slides.splice(i+1,0,{group:sl.group,text:B});
+      }
+      markEdited(); renderSlides(); renderList();
+    };
+    grid.appendChild(c);
+  });
+}
+function markEdited(){ cur().edited=true; save(); }
+
+// ===== Exportar =====
+function toTxt(s){ return s.slides.map(x=>x.text.trim()).filter(Boolean).join('\n\n') + '\n'; }
+function fmt(){ return state.opts.fmt || 'txt'; }
+function fileName(s){ return ((s.title||'cancion').replace(/[\\/:*?"<>|]+/g,'').trim() || 'cancion') + '.' + fmt(); }
+
+// ----- .pro6 (XML nativo de ProPresenter 6) — experimental -----
+function uuid(){
+  const b = new Uint8Array(16); (window.crypto||{}).getRandomValues ? crypto.getRandomValues(b) : b.forEach((_,i)=>b[i]=Math.random()*256|0);
+  b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+  const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+}
+function b64(str){ const u=new TextEncoder().encode(str); let s=''; u.forEach(c=>s+=String.fromCharCode(c)); return btoa(s); }
+function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rtfEsc(s){
+  let o='';
+  for (let i=0;i<s.length;i++){
+    const ch=s[i], c=s.charCodeAt(i);
+    if (ch==='\\'||ch==='{'||ch==='}') o+='\\'+ch;
+    else if (c>127) o+='\\u'+(c>32767?c-65536:c)+'?';
+    else o+=ch;
+  }
+  return o;
+}
+function slideRTF(text){
+  const body = text.split('\n').map(rtfEsc).join('\\par\n');
+  return '{\\rtf1\\ansi\\ansicpg1252\\deff0{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}}{\\colortbl;\\red255\\green255\\blue255;}\n\\pard\\qc\\f0\\b\\fs144\\cf1 '+body+'}';
+}
+function slideXAML(text){
+  const runs = text.split('\n').map(l=>'<Run FontFamily="Arial" FontWeight="Bold" FontSize="96" Foreground="#FFFFFFFF">'+xmlEsc(l)+'</Run>').join('<LineBreak />');
+  return '<FlowDocument TextAlignment="Center" PagePadding="5,0,5,0" AllowDrop="True" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><Paragraph TextAlignment="Center">'+runs+'</Paragraph></FlowDocument>';
+}
+const PRO_COLORS = { verso:'0.298 0.482 0.851 1', coro:'0.851 0.282 0.373 1', precoro:'0.878 0.643 0.227 1', puente:'0.557 0.357 0.851 1', extra:'0.231 0.647 0.608 1', otro:'0.478 0.506 0.6 1' };
+function proColor(name){ const v=groupColor(name).match(/--(\w+)/)[1]; return PRO_COLORS[v]||PRO_COLORS.otro; }
+function toPro6(s){
+  const groups=[];
+  s.slides.forEach(sl=>{ const t=sl.text.trim(); if(!t) return; const g=groups[groups.length-1]; if(g && g.name===sl.group) g.slides.push(t); else groups.push({name:sl.group, slides:[t]}); });
+  const now = new Date().toISOString().slice(0,19);
+  const gx = groups.map(g=>{
+    const sx = g.slides.map(t=>
+`        <RVDisplaySlide backgroundColor="0 0 0 0" highlightColor="" drawingBackgroundColor="false" enabled="true" hotKey="" label="" notes="" UUID="${uuid()}" chordChartPath="">
+          <array rvXMLIvarName="cues" />
+          <array rvXMLIvarName="displayElements">
+            <RVTextElement displayName="Default" UUID="${uuid()}" typeID="0" displayDelay="0" locked="false" persistent="false" fromTemplate="false" opacity="1" source="" bezelRadius="0" rotation="0" drawingFill="false" drawingShadow="true" drawingStroke="false" fillColor="1 1 1 0" adjustsHeightToFit="false" verticalAlignment="0" revealType="0">
+              <RVRect3D rvXMLIvarName="position">{100 100 0 1720 880}</RVRect3D>
+              <shadow rvXMLIvarName="shadow">0|0 0 0 0.3333333432674408|{4, -4}</shadow>
+              <dictionary rvXMLIvarName="stroke">
+                <NSColor rvXMLDictionaryKey="RVShapeElementStrokeColorKey">0 0 0 1</NSColor>
+                <NSNumber rvXMLDictionaryKey="RVShapeElementStrokeWidthKey" hint="float">0</NSNumber>
+              </dictionary>
+              <NSString rvXMLIvarName="PlainText">${b64(t)}</NSString>
+              <NSString rvXMLIvarName="RTFData">${b64(slideRTF(t))}</NSString>
+              <NSString rvXMLIvarName="WinFlowData">${b64(slideXAML(t))}</NSString>
+            </RVTextElement>
+          </array>
+        </RVDisplaySlide>`).join('\n');
+    return `    <RVSlideGrouping name="${xmlEsc(g.name)}" uuid="${uuid()}" color="${proColor(g.name)}">
+      <array rvXMLIvarName="slides">
+${sx}
+      </array>
+    </RVSlideGrouping>`;
+  }).join('\n');
+  return `<?xml version="1.0" encoding="utf-8"?>
+<RVPresentationDocument height="1080" width="1920" docType="0" versionNumber="600" usedCount="0" backgroundColor="0 0 0 1" drawingBackgroundColor="false" CCLIDisplay="false" lastDateUsed="${now}" selectedArrangementID="" category="Song" resourcesDirectory="" notes="" chordChartPath="" os="1" buildNumber="6016" CCLIAuthor="${xmlEsc(s.artist)}" CCLIArtistCredits="${xmlEsc(s.artist)}" CCLISongTitle="${xmlEsc(s.title)}" CCLIPublisher="" CCLICopyrightYear="" CCLISongNumber="${xmlEsc(s.ccli)}">
+  <RVTimeline timeOffset="0" duration="0" selectedMediaTrackIndex="0" loop="false" rvXMLIvarName="timeline">
+    <array rvXMLIvarName="timeCues" />
+    <array rvXMLIvarName="mediaTracks" />
+  </RVTimeline>
+  <array rvXMLIvarName="groups">
+${gx}
+  </array>
+  <array rvXMLIvarName="arrangements" />
+</RVPresentationDocument>
+`;
+}
+
+function download(s){
+  if (!s.slides.length) return false;
+  const blob = fmt()==='pro6'
+    ? new Blob([toPro6(s)], {type:'application/xml;charset=utf-8'})
+    : new Blob([(state.opts.bom?'\uFEFF':'') + toTxt(s)], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName(s);
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  return true;
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+// ===== Eventos =====
+let rawT;
+$('raw').addEventListener('input', ()=>{ cur().raw=$('raw').value; save(); clearTimeout(rawT); rawT=setTimeout(()=>regen(false),250); });
+['title','artist','ccli'].forEach(id=>$(id).addEventListener('input', ()=>{ cur()[id]=$(id).value; renderList(); save(); }));
+['lps','maxc','caseMode','oChords','oRepeat','oNums','oPunct'].forEach(id=>$(id).addEventListener('change', ()=>{ readOpts(); regen(false); save(); }));
+$('oBom').addEventListener('change', ()=>{ readOpts(); save(); });
+$('fmt').addEventListener('change', ()=>{ state.opts.fmt=$('fmt').value; save(); });
+$('regenBtn').onclick = ()=>regen(true);
+$('addBtn').onclick = ()=>{ newSong(); loadSong(); save(); $('title').focus(); };
+$('dlBtn').onclick = ()=>{ const s=cur(); if(!s.title.trim()){ toast('Ponele un título a la canción'); $('title').focus(); return; } download(s) ? toast('Descargado: '+fileName(s)) : toast('No hay diapositivas para descargar'); };
+$('allBtn').onclick = ()=>{
+  const list = state.songs.filter(s=>s.slides.length);
+  if (!list.length) return toast('No hay canciones con diapositivas');
+  list.forEach((s,i)=>setTimeout(()=>download(s), i*450));
+  toast('Descargando '+list.length+' canciones…');
+};
+$('copyBtn').onclick = async ()=>{
+  const txt = toTxt(cur());
+  try { await navigator.clipboard.writeText(txt); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+  toast('Texto copiado');
+};
+$('helpBtn').onclick = ()=>$('help').showModal();
+document.addEventListener('keydown', e=>{ if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); $('dlBtn').click(); } });
+
+// ===== Inicio =====
+writeOpts(); $('fmt').value = state.opts.fmt || 'txt'; loadSong();
+if (cur().edited) $('banner').classList.remove('show');
+</script>
+</body>
+</html>
