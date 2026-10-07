@@ -4,7 +4,7 @@ Página web de un solo archivo que convierte letras de canciones (pegadas tal co
 
 ## Cómo usarla
 
-1. Descargá [`cargador-letras.html`](cargador-letras.html) y abrilo con el navegador (Chrome, Edge, Firefox o Safari). No necesita instalación ni conexión a internet.
+1. Abrí la app en **https://samuelsuarezok.github.io/CONVERTIDOR-DE-LETRAS-PROPRESENTER6/**, o descargá [`cargador-letras.html`](cargador-letras.html) y abrilo con el navegador para usarla sin internet (Chrome, Edge, Firefox o Safari). No necesita instalación.
 2. Escribí el título y pegá la letra: las diapositivas aparecen en la vista previa.
 3. Ajustá las opciones (líneas por diapositiva, mayúsculas, etc.) y corregí a mano lo que haga falta.
 4. Tocá **Descargar** (o `Ctrl/Cmd + S`) para bajar el `.txt`, o **Descargar todas**.
@@ -38,7 +38,7 @@ Mi corazón entona la canción
 
 ## Dónde se guardan las canciones
 
-En el navegador donde abrís la página. No se sube nada a internet. Si cambiás de navegador, borrás los datos de navegación o movés el archivo, puede que no aparezcan: descargalas antes.
+En el navegador donde abrís la página. Las letras no se suben a ningún lado, tampoco en la versión online: la página solo se descarga y todo queda en tu navegador. La versión online y el archivo descargado guardan sus canciones por separado. Si cambiás de navegador, borrás los datos de navegación o movés el archivo, puede que no aparezcan: descargalas antes.
 
 ## Pruebas automáticas (para desarrollo)
 
