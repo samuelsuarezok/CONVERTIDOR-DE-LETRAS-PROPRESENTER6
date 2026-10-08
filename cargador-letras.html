@@ -273,6 +273,15 @@ const LABELS = [
 const CHORD = /^[A-G](?:#|b|♯|♭)?(?:maj|min|dim|aug|sus|add|m|M|°|º|ø|\+)?\d{0,2}(?:(?:sus|add|maj|M)\d{0,2}|[b#♭♯+-]\d{1,2})*(?:\/[A-G](?:#|b|♯|♭)?)?$/;
 
 function num(v, lo, hi, def){ v = Math.round(parseFloat(v)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; }
+// Saltos de línea que el cuadro de texto no muestra como renglones: \r (Mac viejo), \v (Shift+Enter en Word/PowerPoint),
+// U+2028 (Pages, Keynote, ProPresenter) y otros. Se pasan a Enter común.
+function fixBreaks(t){ return t.replace(/\r\n|[\r\v\f\u0085\u2028\u2029]/g, '\n'); }
+// Renglones que quedaron pegados al copiar ("los cielosEl firmamento"): minúscula (con o sin puntuación) seguida de
+// mayúscula o ¡¿ sin espacio. Solo se separa si pasa al menos dos veces, para no romper palabras como "iPhone".
+function unglue(t){
+  const re = /([a-záéíóúüñ][.,;:!?)»”"]?)(?=[A-ZÁÉÍÓÚÜÑ¡¿])/g;
+  return (t.match(re) || []).length >= 2 ? t.replace(re, '$1\n') : t;
+}
 function repOf(m, i){ return m[i+3] ? 2 : Math.max(1, parseInt(m[i]||m[i+1]||m[i+2], 10) || 1); }
 function isChordLine(t){
   const toks = t.replace(REP_RE,'').split(/\s+/).filter(x=>x && !/^[|\-–/:.%]+$/.test(x));
@@ -312,8 +321,7 @@ function process(raw, o){
   const sections = [];
   let sec = null, brk = false, auto = 0;
   const open = (name, rep)=>{ sec = { name, lines: [], rep }; sections.push(sec); brk = false; };
-  // \v = salto de línea manual de Word; U+2028 aparece al copiar de algunas webs
-  for (const line of raw.split(/\r\n|[\n\r\v\f\u0085\u2028\u2029]/)){
+  for (const line of fixBreaks(raw).split('\n')){
     let t = line.replace(/[\x00-\x08\x0E-\x1F\x7F\u00AD\u200B-\u200D\u2060\uFEFF]/g,'').replace(/\s+/g,' ').trim();
     if (!t){ brk = true; continue; }
     let m = t.match(LABEL_RE);
@@ -445,7 +453,7 @@ function renderSlides(){
     c.querySelector('[data-a="merge"]').disabled = i===total-1;
     // Se guarda mientras se escribe: Ctrl+S o cerrar la pestaña no pierden la edición
     ed.addEventListener('input', ()=>{
-      const t = ed.innerText.replace(/\n{2,}/g,'\n').trim();
+      const t = fixBreaks(ed.innerText).replace(/\n{2,}/g,'\n').trim();
       if (t!==sl.text){ sl.text=t; markEdited(s); }
     });
     ed.addEventListener('blur', ()=>{ if (ed.textContent!==sl.text) ed.textContent = sl.text; });
@@ -572,6 +580,43 @@ function optsChanged(commit){ readOpts(commit); flushRaw(); state.songs.forEach(
 
 $('raw').addEventListener('input', ()=>{ const s=cur(); s.raw=$('raw').value; rawSong=s; save(); clearTimeout(rawT); rawT=setTimeout(flushRaw,250); });
 $('raw').addEventListener('blur', flushRaw);
+
+// Pegar letra: según de dónde se copie, los renglones llegan con saltos que el cuadro no muestra, o sin saltos.
+// Se normalizan y, si llegó todo en un renglón, se recuperan de la versión con formato o separando renglones pegados.
+function htmlToText(html){
+  const BLOCK = /^(P|DIV|LI|H[1-6]|TR|PRE|BLOCKQUOTE|SECTION|ARTICLE)$/;
+  let out = '';
+  (function walk(node, pre){
+    for (const c of node.childNodes){
+      if (c.nodeType===3) out += pre ? c.nodeValue : c.nodeValue.replace(/\s+/g,' ');
+      else if (c.nodeName==='BR') out += '\n';
+      else if (c.nodeType===1 && !/^(SCRIPT|STYLE|TEMPLATE)$/.test(c.nodeName)){
+        const b = BLOCK.test(c.nodeName);
+        if (b) out += '\n';
+        walk(c, pre || c.nodeName==='PRE');
+        if (b) out += c.nodeName==='P' ? '\n\n' : '\n';
+      }
+    }
+  })(new DOMParser().parseFromString(html, 'text/html').body, false);
+  return fixBreaks(out).split('\n').map(l=>l.trim()).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function insertRaw(t){
+  const ta = $('raw'); ta.focus();
+  // execCommand conserva el Ctrl+Z; si el navegador no lo permite, se inserta a mano
+  if (!document.execCommand('insertText', false, t)){ ta.setRangeText(t, ta.selectionStart, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+}
+$('raw').addEventListener('paste', e=>{
+  const cd = e.clipboardData; if (!cd) return;
+  const plain = cd.getData('text/plain'); let t = fixBreaks(plain), msg = '';
+  if (!t.includes('\n')){
+    const html = cd.getData('text/html'), h = html ? htmlToText(html) : '', flat = s => s.replace(/\s+/g,'');
+    if (h.includes('\n') && flat(h)===flat(t)) t = h; // la versión con formato trae la misma letra, con renglones
+    else if (unglue(t)!==t){ t = unglue(t); msg = 'Se separaron renglones que venían pegados: revisá que hayan quedado bien'; }
+    else if (t.length>120) msg = 'La letra se pegó en un solo renglón: el lugar de donde la copiaste no trae los saltos de línea. Separá los renglones con Enter o copiala de otro sitio';
+  }
+  if (t!==plain){ e.preventDefault(); insertRaw(t); }
+  if (msg) toast(msg);
+});
 ['title','artist','ccli'].forEach(id=>$(id).addEventListener('input', ()=>{ cur()[id]=$(id).value; if (id==='title') renderList(); save(); }));
 ['lps','maxc'].forEach(id=>{ $(id).addEventListener('input', ()=>optsChanged(false)); $(id).addEventListener('change', ()=>optsChanged(true)); });
 ['caseMode','fmt','oChords','oRepeat','oNums','oPunct','oBom'].forEach(id=>$(id).addEventListener('change', ()=>optsChanged(true)));
@@ -632,7 +677,7 @@ document.addEventListener('drop', async e=>{
   flushRaw();
   for (const f of files){
     const c = cur(), s = !c.title.trim() && !c.raw.trim() ? c : newSong(); // reusar la canción vacía
-    s.title = f.name.replace(/\.[^.]+$/,''); s.raw = decodeText(await f.arrayBuffer());
+    s.title = f.name.replace(/\.[^.]+$/,''); s.raw = fixBreaks(decodeText(await f.arrayBuffer()));
     state.current = s.id; refresh(s);
   }
   showSong(); save();
@@ -641,7 +686,12 @@ document.addEventListener('drop', async e=>{
 
 // ===== Inicio =====
 state = load();
-state.songs.forEach(s=>{ if (s.edited && !s.sig) s.sig = sigOf(s); }); // datos de la versión anterior
+state.songs.forEach(s=>{
+  if (s.edited && !s.sig) s.sig = sigOf(s); // datos de la versión anterior
+  // Letras ya guardadas con saltos que el cuadro no mostraba: se ven en renglones sin cambiar las diapositivas
+  const raw = fixBreaks(s.raw);
+  if (raw!==s.raw){ const fresh = s.sig===sigOf(s); s.raw = raw; if (fresh) s.sig = sigOf(s); }
+});
 if (!state.songs.length) newSong();
 if (!cur()) state.current = state.songs[0].id;
 state.songs.forEach(s=>refresh(s));

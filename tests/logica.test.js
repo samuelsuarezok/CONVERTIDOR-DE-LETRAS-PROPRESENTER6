@@ -7,7 +7,7 @@ const file = process.argv[2] || path.join(__dirname, '..', 'cargador-letras.html
 const html = fs.readFileSync(file, 'utf8');
 const js = html.slice(html.indexOf('<script>') + 8, html.lastIndexOf('</script>'));
 const code = js.slice(js.indexOf('// ===== Procesamiento ====='), js.indexOf('// ===== Render ====='));
-const api = new Function(code + '\nreturn { process, wrap };')();
+const api = new Function(code + '\nreturn { process, wrap, fixBreaks, unglue };')();
 
 const base = { lps: 2, maxc: 40, caseMode: 'keep', chords: true, repeat: true, nums: true, punct: false };
 const run = (raw, o = {}) => api.process(raw, { ...base, ...o });
@@ -106,6 +106,20 @@ console.log('— Texto y formato');
   check('"Líneas por diapositiva" no entero se redondea', same(texts(sl), ['a\nb', 'c\nd']), JSON.stringify(texts(sl)));
   const w = api.wrap('Cuán grande es Él, cuán grande es Él, mi corazón entona la canción', 30);
   check('líneas largas: no superan el máximo y prefieren cortar en comas', w.every(l => l.length <= 30) && w[0] === 'Cuán grande es Él,', JSON.stringify(w));
+}
+
+console.log('— Pegado de letras');
+{
+  const raw = 'a' + U(0x0B) + 'b' + U(0x2028) + 'c\r\nd\re' + U(0x2029) + 'f' + U(0x85) + 'g\fh';
+  const fixed = api.fixBreaks(raw);
+  check('saltos de Word/PowerPoint (\\v), Pages/Keynote/ProPresenter (U+2028) y otros pasan a Enter', fixed === 'a\nb\nc\nd\ne\nf\ng\nh', JSON.stringify(fixed));
+  const glued = 'Señor mi Dios, al contemplar los cielosEl firmamento y las estrellas mil¡Cuán grande es Él!Mi corazón entona la canción';
+  const u = api.unglue(glued);
+  check('renglones pegados ("cielosEl", "mil¡Cuán", "Él!Mi") se separan',
+    u === 'Señor mi Dios, al contemplar los cielos\nEl firmamento y las estrellas mil\n¡Cuán grande es Él!\nMi corazón entona la canción', JSON.stringify(u));
+  for (const ok of ['Te alabo mi Señor Jesús, eres mi Dios y Rey', 'Lo vi en mi iPhone ayer', 'Desde EE.UU. hasta Argentina', '¡Aleluya! ¿Quién como Tú?']) {
+    check('texto normal no se toca: "' + ok + '"', api.unglue(ok) === ok, JSON.stringify(api.unglue(ok)));
+  }
 }
 
 console.log('— Rendimiento (entradas extremas)');

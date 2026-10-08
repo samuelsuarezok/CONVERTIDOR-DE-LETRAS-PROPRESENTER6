@@ -64,6 +64,13 @@ window.clickSong = i => songs()[i].querySelector('button.n').click();
 window.slideTexts = () => [...document.querySelectorAll('#slidesWrap .screen > div')].map(d => d.textContent);
 window.editSlide = (i, text) => { const ed = document.querySelectorAll('#slidesWrap [contenteditable]')[i]; ed.focus(); ed.textContent = text; ed.dispatchEvent(new Event('input', { bubbles: true })); return ed; };
 window.bannerShown = () => getComputedStyle(document.getElementById('banner')).display !== 'none';
+window.paste = (plain, html) => {  // pegado como el de una persona: devuelve si la app lo intervino
+  const ta = document.getElementById('raw'); ta.focus();
+  const dt = new DataTransfer(); dt.setData('text/plain', plain); if (html) dt.setData('text/html', html);
+  const ev = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }); ta.dispatchEvent(ev);
+  return ev.defaultPrevented;
+};
+window.toastText = () => document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent : '';
 window.lastDl = async () => { const d = __dl[__dl.length - 1]; return d ? { name: d.name, text: await d.blob.text() } : null; };
 true;
 `;
@@ -241,6 +248,49 @@ async function main() {
   })()`);
   check('15. Opciones: BOM deshabilitado en .pro6; "Líneas" redondea, conserva el valor si queda vacío y respeta el máximo',
     r.bomOff && r.bomOn && r.v1 === '3' && r.v2 === '3' && r.v3 === '8', JSON.stringify(r));
+
+  // 16. Pegar letras copiadas de distintos lugares
+  await open();
+  r = await evaluate(`(async () => {
+    const ta = document.getElementById('raw'), out = {}, L = String.fromCharCode(0x2028), V = String.fromCharCode(11);
+    const reset = () => { ta.value = ''; ta.dispatchEvent(new Event('input')); };
+    // a) Pages/Keynote/ProPresenter (U+2028) y Word/PowerPoint (\\v): antes se veía todo en un renglón
+    out.a = { prevented: paste('Señor mi Dios' + L + 'al contemplar' + V + 'los cielos'), value: ta.value };
+    await sleep(400); out.a.slides = slideTexts();
+    // b) Ctrl+Z deshace el pegado entero
+    document.execCommand('undo'); out.b = ta.value; reset();
+    // c) texto plano sin saltos, pero la versión con formato (HTML) sí los trae
+    out.c = { prevented: paste('Señor mi Dios al contemplar los cielos El firmamento',
+      '<p>Señor mi Dios<br>al contemplar los cielos</p><p>El firmamento</p>'), value: ta.value }; reset();
+    // d) HTML con contenido distinto al texto (botones, publicidad): no se usa
+    out.d = { prevented: paste('Uno dos tres', '<div>Uno<br>dos tres</div><div>Ver más</div>'), value: ta.value }; reset();
+    // e) renglones pegados sin espacio
+    out.e = { prevented: paste('Mi corazón entona la canciónCuán grande es ÉlCuán grande es Él'), value: ta.value, toast: toastText() }; reset();
+    // f) todo en un renglón, sin pistas: no se toca, pero se avisa
+    const flat = 'Señor mi Dios al contemplar los cielos el firmamento y las estrellas mil al oír tu voz en los potentes truenos y ver brillar al sol en su cenit';
+    out.f = { prevented: paste(flat), toast: toastText() };
+    // g) pegado normal con Enter: la app no interviene
+    out.g = { prevented: paste('Hola\\nmundo') };
+    return out;
+  })()`);
+  check('16a. Saltos de Pages/Keynote/ProPresenter (U+2028) y Word (\\v) se ven como renglones',
+    r.a.prevented && r.a.value === 'Señor mi Dios\nal contemplar\nlos cielos' && r.a.slides.join('|') === 'Señor mi Dios\nal contemplar|los cielos', JSON.stringify(r.a));
+  check('16b. Ctrl+Z deshace el pegado', r.b === '', JSON.stringify(r.b));
+  check('16c. Si el texto llega sin saltos, se recuperan de la versión con formato (con línea en blanco entre estrofas)',
+    r.c.prevented && r.c.value === 'Señor mi Dios\nal contemplar los cielos\n\nEl firmamento', JSON.stringify(r.c));
+  check('16d. La versión con formato se ignora si trae otro contenido', !r.d.prevented, JSON.stringify(r.d));
+  check('16e. Renglones pegados sin espacio se separan y se avisa',
+    r.e.prevented && r.e.value === 'Mi corazón entona la canción\nCuán grande es Él\nCuán grande es Él' && /separaron/.test(r.e.toast), JSON.stringify(r.e));
+  check('16f. Letra larga en un solo renglón sin pistas: se pega igual y se avisa', !r.f.prevented && /un solo renglón/.test(r.f.toast), JSON.stringify(r.f));
+  check('16g. Un pegado normal con Enter no se intercepta', !r.g.prevented, JSON.stringify(r.g));
+
+  // 17. Letras guardadas antes con esos saltos: se muestran en renglones sin marcar cambios pendientes
+  const L = String.fromCharCode(0x2028);
+  const old = { songs: [{ id: 'a', title: 'Vieja', artist: '', ccli: '', raw: 'Uno' + L + 'Dos', slides: [{ group: 'Estrofa 1', text: 'Uno a mano' }], edited: true }], current: 'a', opts: {} };
+  await open({ preset: JSON.stringify(old) });
+  r = await evaluate(`({ value: document.getElementById('raw').value, banner: bannerShown(), slides: slideTexts() })`);
+  check('17. Letras guardadas con U+2028 se ven en renglones y conservan las ediciones, sin aviso',
+    r.value === 'Uno\nDos' && !r.banner && r.slides[0] === 'Uno a mano', JSON.stringify(r));
 
   const unexpected = errors.slice();
   for (const x of results) console.log((x.ok ? 'OK   ' : 'FALLA') + '  ' + x.name + (x.ok ? '' : '\n        → ' + x.detail));
