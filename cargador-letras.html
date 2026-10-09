@@ -3,115 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#151a2e">
 <title>Cargador de Letras · ProPresenter 6</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='5' width='30' height='22' rx='4' fill='%23151a2e' stroke='%23e8b84a' stroke-width='2'/%3E%3Crect x='7' y='12' width='18' height='3' rx='1.5' fill='%23ecebf3'/%3E%3Crect x='9' y='18' width='14' height='3' rx='1.5' fill='%23ecebf3'/%3E%3C/svg%3E">
 <style>
 :root{
   color-scheme:dark;
-  --ink:#151a2e; --panel:#1e2440; --panel2:#262d4f; --line:#343c66;
-  --text:#ecebf3; --muted:#9aa0c0; --gold:#e8b84a; --gold-ink:#2a2006;
+  --ink:#151a2e; --panel:#1b2140; --panel2:#262d4f; --line:#343c66; --line-soft:#2a3155;
+  --text:#ecebf3; --muted:#9aa0c0; --gold:#e8b84a; --gold-hi:#f0c560; --gold-ink:#2a2006;
   --verso:#4c7bd9; --coro:#d9485f; --precoro:#e0a43a; --puente:#8e5bd9; --extra:#3ba59b; --otro:#7a8199;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  --shadow:0 1px 2px #0006, 0 8px 24px #0008;
   font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  scrollbar-color:var(--line) transparent;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--ink);color:var(--text)}
 body{display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+::selection{background:#e8b84a55}
 
-header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-header h1{font-size:1.15rem;margin:0;font-weight:700;letter-spacing:.01em}
+header{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+header h1{display:flex;align-items:center;gap:10px;font-size:1.1rem;margin:0;font-weight:700;letter-spacing:-.01em}
+header h1 svg{flex:none}
 header h1 span{color:var(--muted);font-weight:400}
 header .sp{flex:1}
-.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 14px}
-.btn:hover{border-color:var(--muted)}
+
+/* Botones: feedback al presionar (no solo al soltar) y hover solo con mouse */
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 14px;
+  transition:transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease, color 150ms ease}
+.btn:active:not(:disabled){transform:scale(.97)}
 .btn.primary{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700}
 .btn.small{padding:4px 9px;font-size:.82rem;border-radius:6px}
-.btn.danger:hover{border-color:var(--coro);color:#ffb3bf}
-.btn:disabled{opacity:.4;cursor:default;border-color:var(--line)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn:disabled{opacity:.35;cursor:default}
+@media (hover:hover) and (pointer:fine){
+  .btn:hover:not(:disabled){border-color:var(--muted)}
+  .btn.primary:hover:not(:disabled){background:var(--gold-hi);border-color:var(--gold-hi)}
+  .btn.ghost:hover:not(:disabled){background:var(--panel2);border-color:transparent;color:var(--text)}
+  .btn.danger:hover:not(:disabled){color:#ffb3bf;background:#d9485f26}
+}
 
 main{flex:1;display:grid;grid-template-columns:220px minmax(320px,1fr) minmax(360px,1.3fr);min-height:0}
-section{min-height:0;overflow:auto;padding:16px}
-#songs{background:var(--panel);border-right:1px solid var(--line)}
-#editor{border-right:1px solid var(--line)}
-h2{font-size:.95rem;margin:0 0 10px;color:var(--muted);font-weight:600}
+section{min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px}
+#songs{background:var(--panel);border-right:1px solid var(--line-soft)}
+#editor{border-right:1px solid var(--line-soft)}
+h2{font-size:.9rem;margin:0 0 10px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
 
-.song{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;border:1px solid transparent}
-.song:hover{background:var(--panel2)}
-.song.active{background:var(--panel2);border-color:var(--gold)}
+.song{display:flex;align-items:center;gap:6px;padding:8px 6px 8px 10px;border-radius:8px;margin-bottom:2px;cursor:pointer;border:1px solid transparent;
+  transition:background-color 150ms ease, border-color 150ms ease}
+.song.active{background:var(--panel2);border-color:#e8b84a99}
 .song .n{flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.song .c{color:var(--muted);font-size:.8rem;white-space:nowrap}
-.song .x{background:none;border:0;color:var(--muted);padding:2px 6px;border-radius:4px}
-.song .x:hover{color:#ffb3bf;background:#0003}
+.song .c{color:var(--muted);font-size:.78rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.song .x{background:none;border:0;color:var(--muted);padding:2px 6px;border-radius:5px;line-height:1.2;
+  transition:opacity 150ms ease, color 150ms ease, background-color 150ms ease}
+@media (hover:hover) and (pointer:fine){
+  .song:hover{background:var(--panel2)}
+  .song .x{opacity:0}
+  .song:hover .x,.song.active .x,.song:focus-within .x{opacity:1}
+  .song .x:hover{color:#ffb3bf;background:#d9485f26}
+}
 
-label.f{display:block;font-size:.85rem;color:var(--muted);margin:0 0 4px}
-.row{display:flex;gap:10px;margin-bottom:12px;align-items:flex-end}
+label.f{display:block;font-size:.82rem;color:var(--muted);margin:0 0 5px}
+.row{display:flex;gap:10px;margin-bottom:14px;align-items:flex-end}
 .row > div{flex:1}
-input[type=text],input[type=number],select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-textarea{min-height:300px;resize:vertical;line-height:1.5;font-size:.95rem}
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:12px 0;font-size:.9rem}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  transition:border-color 150ms ease}
+input[type=text]:focus-visible,input[type=number]:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:-1px}
+@media (hover:hover) and (pointer:fine){
+  input[type=text]:hover,input[type=number]:hover,select:hover,textarea:hover{border-color:#4a5384}
+}
+textarea{min-height:300px;resize:vertical;line-height:1.55;font-size:.95rem}
+::placeholder{color:#6b7194}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:14px 0;font-size:.9rem}
 .opts label{display:flex;gap:8px;align-items:center;cursor:pointer}
 .opts label:has(input:disabled){opacity:.5;cursor:default}
-.opts input{accent-color:var(--gold)}
+.opts input{accent-color:var(--gold);margin:0;width:15px;height:15px}
 
-.banner{background:#3a2f12;border:1px solid var(--gold);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.9rem;display:none;gap:10px;align-items:center}
+/* Aviso de edición a mano: aparece sin saltar (deja de ser display:none al mostrarse) */
+.banner{background:#3a2f12;border:1px solid #e8b84a99;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:.88rem;line-height:1.45;display:none;gap:12px;align-items:center;
+  transition:opacity 200ms ease, transform 200ms var(--ease-out)}
 .banner.show{display:flex}
-.banner span{flex:1}
+@starting-style{ .banner.show{opacity:0;transform:translateY(-4px)} }
+.banner span{flex:1;text-wrap:pretty}
 
-#previewHead{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+#previewHead{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 #previewHead h2{margin:0;flex:1}
-.group{margin-bottom:16px}
-.ghead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600;font-size:.9rem}
-.chip{width:12px;height:12px;border-radius:3px}
+.group{margin-bottom:18px}
+.ghead{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600;font-size:.88rem}
+.chip{width:10px;height:10px;border-radius:3px}
 .slides{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-.slide{background:var(--panel);border-radius:8px;padding:6px;border-top:4px solid var(--otro)}
-.screen{aspect-ratio:16/9;background:#000;border-radius:4px;display:flex;align-items:center;justify-content:center;padding:8px;container-type:inline-size}
-.screen div{color:#fff;text-align:center;font-weight:700;line-height:1.25;white-space:pre-wrap;font-size:5cqw;width:100%;outline:none;border-radius:3px}
+/* La franja de color del grupo va recortada por el borde redondeado (con border-top se afinaba en las esquinas) */
+.slide{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:9px 6px 4px}
+.slide::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--g, var(--otro))}
+.screen{aspect-ratio:16/9;background:#000;border-radius:5px;display:flex;align-items:center;justify-content:center;padding:8px;container-type:inline-size;box-shadow:inset 0 0 0 1px #ffffff0d}
+.screen div{color:#fff;text-align:center;font-weight:700;line-height:1.25;white-space:pre-wrap;font-size:5cqw;width:100%;outline:none;border-radius:3px;
+  transition:box-shadow 150ms ease}
 .screen div:focus{box-shadow:0 0 0 2px var(--gold)}
-.stools{display:flex;gap:4px;margin-top:6px;align-items:center}
-.stools .num{flex:1;color:var(--muted);font-size:.78rem;padding-left:2px}
-.empty{color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:30px;text-align:center;line-height:1.6}
-body.drop main{outline:2px dashed var(--gold);outline-offset:-6px}
+.stools{display:flex;gap:2px;margin-top:4px;align-items:center}
+.stools .num{flex:1;color:var(--muted);font-size:.76rem;padding-left:4px;font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:12px;padding:32px 24px;text-align:center;line-height:1.6;text-wrap:balance}
 
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--gold-ink);padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px);text-align:center}
-#toast.show{opacity:1}
+/* Al arrastrar archivos: capa que dice qué pasa si se sueltan */
+body::after{content:"Soltá los archivos .txt para cargarlos";position:fixed;inset:8px;z-index:10;display:grid;place-items:center;
+  border:2px dashed var(--gold);border-radius:14px;background:#151a2ee0;color:var(--gold);font-weight:600;font-size:1.05rem;
+  opacity:0;pointer-events:none;transition:opacity 150ms ease}
+body.drop::after{opacity:1}
 
-dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;max-width:680px;padding:22px 22px 0;line-height:1.55}
-dialog::backdrop{background:#000a}
-dialog h3{margin-top:0}
+/* Aviso: entra desde abajo con ease-out y sale más rápido; con transiciones para que un aviso nuevo no reinicie la animación */
+#toast{position:fixed;bottom:20px;left:50%;z-index:20;transform:translate(-50%,8px) scale(.97);background:#f3f1ea;color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.92rem;line-height:1.4;
+  box-shadow:var(--shadow);opacity:0;pointer-events:none;max-width:calc(100vw - 32px);width:max-content;text-align:center;text-wrap:balance;
+  transition:opacity 160ms ease, transform 160ms ease}
+#toast.show{opacity:1;transform:translate(-50%,0);transition:opacity 260ms var(--ease-out), transform 260ms var(--ease-out)}
+
+/* Ayuda: aparece con opacidad + escala desde el centro (es modal, no sale de un botón) */
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;max-width:680px;padding:22px 22px 0;line-height:1.55;box-shadow:var(--shadow);
+  opacity:0;transform:scale(.97);
+  transition:opacity 150ms ease, transform 150ms ease, overlay 150ms allow-discrete, display 150ms allow-discrete}
+dialog[open]{opacity:1;transform:none;transition-duration:220ms;transition-timing-function:var(--ease-out)}
+@starting-style{ dialog[open]{opacity:0;transform:scale(.96)} }
+dialog::backdrop{background:#0000;transition:background-color 150ms ease, overlay 150ms allow-discrete, display 150ms allow-discrete}
+dialog[open]::backdrop{background:#000a;transition-duration:220ms}
+@starting-style{ dialog[open]::backdrop{background:#0000} }
+dialog h3{margin-top:0;letter-spacing:-.005em}
 dialog h3 + ol, dialog h3 + ul{margin-top:0}
 dialog ol, dialog ul{padding-left:20px}
+dialog li{margin-bottom:4px}
+dialog p,dialog li{text-wrap:pretty}
 dialog form{position:sticky;bottom:0;margin:0;padding:12px 0 22px;background:var(--panel)}
 code{background:var(--ink);padding:1px 6px;border-radius:4px}
+
+/* Pantallas táctiles: blancos de toque más grandes */
+@media (pointer:coarse){
+  .btn.small{min-height:36px;padding:6px 12px}
+  .song .x{padding:8px 10px;margin:-6px -2px -6px 0}
+}
 
 @media (max-width:1000px){
   html,body{height:auto}
   body{display:block}
   main{display:block}
   section{overflow:visible;min-height:auto;padding:16px 14px}
-  #songs,#editor{border-right:0;border-bottom:1px solid var(--line)}
-  #songList{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
-  .song{flex:0 0 auto;max-width:70vw;margin:0}
+  #songs,#editor{border-right:0;border-bottom:1px solid var(--line-soft)}
+  #songList{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .song{flex:0 0 auto;max-width:70vw;margin:0;border-color:var(--line-soft)}
   textarea{min-height:220px}
   input[type=text],input[type=number],select,textarea{font-size:16px}
   .row{flex-wrap:wrap}
   .row > div{min-width:120px}
   .opts{grid-template-columns:1fr}
-  #previewHead h2{flex-basis:100%}
-  #previewHead select{flex:1}
+  #previewHead select{flex:1 1 55%;min-width:0} /* formato y Descargar juntos en su propia fila */
   .slides{grid-template-columns:1fr 1fr}
   header{padding:12px 14px}
   header h1{flex-basis:100%}
   header .sp{display:none}
 }
 @media (max-width:420px){ .slides{grid-template-columns:1fr} }
-@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+/* Movimiento reducido: sin desplazamientos ni escalas, solo cambios de opacidad */
+@media (prefers-reduced-motion:reduce){
+  .btn:active:not(:disabled){transform:none}
+  #toast,#toast.show{transform:translateX(-50%)}
+  dialog,dialog[open]{transform:none}
+  @starting-style{ dialog[open]{transform:none} .banner.show{transform:none} }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Cargador de Letras <span>para ProPresenter 6</span></h1>
+  <h1><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="5" width="30" height="22" rx="5" fill="#1e2440" stroke="#e8b84a" stroke-width="2"/><rect x="7" y="12" width="18" height="3" rx="1.5" fill="#ecebf3"/><rect x="9" y="18" width="14" height="3" rx="1.5" fill="#ecebf3"/></svg>Cargador de Letras <span>para ProPresenter 6</span></h1>
   <div class="sp"></div>
   <button class="btn" id="helpBtn">Cómo importar</button>
   <button class="btn" id="allBtn">Descargar todas</button>
@@ -443,8 +506,8 @@ function renderSlides(){
       group.querySelector('.ghead span:last-child').textContent=sl.group;
       grid = group.querySelector('.slides'); box.appendChild(group);
     }
-    const c = document.createElement('div'); c.className='slide'; c.style.borderTopColor=groupColor(sl.group);
-    c.innerHTML='<div class="screen"><div contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-multiline="true"></div></div><div class="stools"><span class="num"></span><button class="btn small" data-a="split" title="Dividir en dos">Dividir</button><button class="btn small" data-a="merge" title="Unir con la siguiente">Unir</button><button class="btn small danger" data-a="del" title="Borrar" aria-label="Borrar diapositiva">✕</button></div>';
+    const c = document.createElement('div'); c.className='slide'; c.style.setProperty('--g', groupColor(sl.group));
+    c.innerHTML='<div class="screen"><div contenteditable="plaintext-only" spellcheck="false" role="textbox" aria-multiline="true"></div></div><div class="stools"><span class="num"></span><button class="btn small ghost" data-a="split" title="Dividir en dos">Dividir</button><button class="btn small ghost" data-a="merge" title="Unir con la siguiente">Unir</button><button class="btn small ghost danger" data-a="del" title="Borrar" aria-label="Borrar diapositiva">✕</button></div>';
     const ed = c.querySelector('[contenteditable]');
     if (ed.contentEditable!=='plaintext-only') ed.contentEditable='true';
     ed.textContent = sl.text; ed.setAttribute('aria-label', 'Diapositiva '+(i+1));
